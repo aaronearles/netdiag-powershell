@@ -23,13 +23,35 @@ function Format-NetDiagResponse {
 
     switch ($Tool) {
         'whois' {
-            [PSCustomObject]@{
-                PSTypeName  = 'NetDiag.Whois'
-                Target      = $Response.target
-                Parsed      = $Response.parsed
-                Raw         = $Response.raw
-                Cached      = $Response.cached
-                Timestamp   = [DateTime]$Response.timestamp
+            # Detect if this is a filtered response (few fields = fields parameter was used)
+            $IsFiltered = $Response.parsed.PSObject.Properties.Count -lt 10
+
+            if ($IsFiltered) {
+                # For filtered responses, provide direct property access to each field
+                $Output = [PSCustomObject]@{
+                    PSTypeName = 'NetDiag.Whois.Filtered'
+                    Target     = $Response.target
+                    Cached     = $Response.cached
+                    Timestamp  = [DateTime]$Response.timestamp
+                }
+
+                # Add each parsed field as a top-level property for easy access
+                foreach ($prop in $Response.parsed.PSObject.Properties) {
+                    $Output | Add-Member -MemberType NoteProperty -Name $prop.Name -Value $prop.Value -Force
+                }
+
+                return $Output
+            }
+            else {
+                # Full response includes everything
+                [PSCustomObject]@{
+                    PSTypeName  = 'NetDiag.Whois'
+                    Target      = $Response.target
+                    Parsed      = $Response.parsed
+                    Raw         = $Response.raw
+                    Cached      = $Response.cached
+                    Timestamp   = [DateTime]$Response.timestamp
+                }
             }
         }
         'dns' {
