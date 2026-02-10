@@ -38,8 +38,8 @@ function Format-NetDiagResponse {
                 Hostname     = $Response.hostname
                 Type         = $Response.type
                 Records      = $Response.records
-                RecordCount  = $Response.record_count
-                Raw          = $Response.raw
+                RecordCount  = if ($Response.records) { $Response.records.Count } else { 0 }
+                QueryTimeMs  = $Response.query_time_ms
                 Cached       = $Response.cached
                 Timestamp    = [DateTime]$Response.timestamp
             }
@@ -51,14 +51,14 @@ function Format-NetDiagResponse {
                 PacketsSent       = $Response.packets_sent
                 PacketsReceived   = $Response.packets_received
                 PacketLossPercent = $Response.packet_loss_percent
-                DurationMs        = $Response.duration_ms
+                DurationMs        = $Response.time_ms
                 RTT               = [PSCustomObject]@{
-                    MinMs    = $Response.rtt.min_ms
-                    AvgMs    = $Response.rtt.avg_ms
-                    MaxMs    = $Response.rtt.max_ms
-                    StdDevMs = $Response.rtt.stddev_ms
+                    MinMs    = $Response.rtt.min
+                    AvgMs    = $Response.rtt.avg
+                    MaxMs    = $Response.rtt.max
+                    StdDevMs = $Response.rtt.stddev
                 }
-                Raw               = $Response.raw
+                ResolvedIP        = $Response.resolved_ip
                 Cached            = $Response.cached
                 Timestamp         = [DateTime]$Response.timestamp
             }
