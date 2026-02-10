@@ -11,6 +11,8 @@ PowerShell client for the NetDiag network diagnostic tools API. Provides a unifi
   - Ping tests (ICMP with RTT statistics)
   - Port connectivity checks (TCP)
   - SSL certificate inspection
+- **Normalized Whois Fields**: Consistent field names across all Regional Internet Registries (ARIN, APNIC, RIPE, etc.)
+- **Smart Output Formatting**: Filtered queries return flat structure with direct property access
 - **PowerShell Native**: Returns proper PowerShell objects for pipeline operations
 - **Flexible Configuration**: Multiple ways to configure server URL
 - **PowerShell 5.1+ Compatible**: Works on Windows PowerShell and PowerShell Core
@@ -102,18 +104,32 @@ netdiag whois -Target google.com
 # ASN lookup
 netdiag whois -Target AS15169
 
-# Filter specific fields
-netdiag whois -Target 8.8.8.8 -Fields NetRange,Organization,Country
+# Filter specific fields (uses standardized field names)
+netdiag whois -Target 8.8.8.8 -Fields Organization,CIDR,Country
 ```
 
-**Output:**
+**Full Output:**
 ```
 Target    : 8.8.8.8
-Parsed    : @{NetRange=8.8.8.0 - 8.8.8.255; CIDR=8.8.8.0/24; Organization=Google LLC}
+Parsed    : @{NetRange=8.8.8.0 - 8.8.8.255; IPRange=8.8.8.0 - 8.8.8.255; CIDR=8.8.8.0/24;
+            NetName=LVLT-GOGL-8-8-8; NetworkName=LVLT-GOGL-8-8-8; Organization=Google LLC;
+            Country=US; ...}
 Raw       : # ARIN WHOIS data...
 Cached    : False
 Timestamp : 2/10/2026 10:00:00 AM
 ```
+
+**Filtered Output (with -Fields parameter):**
+```
+Target       : 8.8.8.8
+Organization : Google LLC
+CIDR         : 8.8.8.0/24
+Country      : US
+Cached       : False
+Timestamp    : 2/10/2026 10:00:00 AM
+```
+
+Note: The API normalizes whois fields across different Regional Internet Registries (RIRs). You can use standardized field names like `Organization`, `IPRange`, `CIDR`, `Country` that work consistently regardless of whether the data comes from ARIN, APNIC, RIPE, etc. Both original and normalized field names are available in full responses.
 
 ### DNS Lookup
 
@@ -168,8 +184,8 @@ Target            : 8.8.8.8
 PacketsSent       : 4
 PacketsReceived   : 4
 PacketLossPercent : 0
-DurationMs        : 3042
-RTT               : @{MinMs=14.2; AvgMs=15.1; MaxMs=16.8; StdDevMs=1.2}
+TimeMs            : 3042
+RTT               : @{Min=14.2; Avg=15.1; Max=16.8; StdDev=1.2}
 Cached            : False
 Timestamp         : 2/10/2026 10:00:00 AM
 ```
@@ -243,13 +259,20 @@ Leverage PowerShell's pipeline capabilities:
 $Cert = netdiag ssl -SSLHostname google.com
 $Cert.Certificate.Validity | Export-Csv -Path certs.csv -NoTypeInformation
 
-# Filter and format
-netdiag whois -Target 8.8.8.8 | Select-Object Target, @{N='Org';E={$_.Parsed.Organization}}
+# Filter and format whois results
+$result = netdiag whois -Target 8.8.8.8
+$result.Parsed.Organization
+$result.Parsed.CIDR
+
+# Filter whois with specific fields (returns flat structure)
+$result = netdiag whois -Target 8.8.8.8 -Fields Organization,CIDR,Country
+$result.Organization
+$result.CIDR
 
 # Check multiple IPs and filter reachable ones
 @('8.8.8.8', '1.1.1.1', '208.67.222.222') | ForEach-Object {
     netdiag ping -PingTarget $_ -Count 4
-} | Where-Object { $_.PacketLossPercent -eq 0 }
+} | Where-Object { $_.PacketLossPercent -eq 0 } | Select-Object Target, @{N='AvgRTT';E={$_.RTT.Avg}}
 ```
 
 ## Advanced Usage
@@ -384,7 +407,7 @@ netdiag-powershell/
 
 ## Related Projects
 
-- [netdiag-server](https://github.com/aaronearles/netdiag) - HTTP API server
+- [netdiag-server](https://github.com/aaronearles/netdiag-server) - HTTP API server
 - [netdiag-python](https://github.com/aaronearles/netdiag-python) - Python client (coming soon)
 
 ## License
