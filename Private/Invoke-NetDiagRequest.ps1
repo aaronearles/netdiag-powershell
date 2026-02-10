@@ -30,7 +30,15 @@ function Invoke-NetDiagRequest {
         Write-Verbose "Making request to: $FullUri"
 
         # Make the request (PowerShell 5.1 compatible)
-        $Response = Invoke-RestMethod -Uri $FullUri -Method Get -ErrorAction Stop
+        # Use Invoke-WebRequest and manually parse JSON for reliability with large responses
+        $WebResponse = Invoke-WebRequest -Uri $FullUri -Method Get -ErrorAction Stop
+
+        # Manually parse JSON to handle large responses
+        if ($WebResponse.Content) {
+            $Response = $WebResponse.Content | ConvertFrom-Json
+        } else {
+            $Response = $WebResponse | ConvertFrom-Json
+        }
 
         return $Response
     }
