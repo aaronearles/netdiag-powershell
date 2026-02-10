@@ -36,7 +36,7 @@ function Set-NetDiagServer {
         }
     }
     catch {
-        Write-Error "Invalid URL: $_"
+        Write-Error "Invalid URL: $($_.Exception.Message)"
         return
     }
 
@@ -65,7 +65,7 @@ function Set-NetDiagServer {
             Write-Host "NetDiag server URL saved to: $ConfigPath" -ForegroundColor Green
         }
         catch {
-            Write-Error "Failed to save config file: $_"
+            Write-Error "Failed to save config file: $($_.Exception.Message)"
         }
     }
     else {

@@ -30,7 +30,7 @@ function Get-NetDiagServerUrl {
             }
         }
         catch {
-            Write-Warning "Failed to read config file at $ConfigPath: $_"
+            Write-Warning "Failed to read config file at ${ConfigPath}: $($_.Exception.Message)"
         }
     }
 
