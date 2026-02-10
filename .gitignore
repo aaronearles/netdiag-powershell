@@ -1,0 +1,13 @@
+# PowerShell
+*.ps1xml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# User config (don't commit personal server configs)
+config.json
