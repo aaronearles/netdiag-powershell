@@ -33,12 +33,16 @@ function Invoke-NetDiagRequest {
         # Use Invoke-WebRequest and manually parse JSON for reliability with large responses
         $WebResponse = Invoke-WebRequest -Uri $FullUri -Method Get -ErrorAction Stop
 
-        # Manually parse JSON to handle large responses
+        # Manually parse JSON to handle large responses with case-sensitive keys
+        # Use -AsHashtable to preserve case (normalized fields like "Country" vs "country")
         if ($WebResponse.Content) {
-            $Response = $WebResponse.Content | ConvertFrom-Json
+            $ResponseHash = $WebResponse.Content | ConvertFrom-Json -AsHashtable
         } else {
-            $Response = $WebResponse | ConvertFrom-Json
+            $ResponseHash = $WebResponse | ConvertFrom-Json -AsHashtable
         }
+
+        # Convert hashtable to PSCustomObject for better property access
+        $Response = [PSCustomObject]$ResponseHash
 
         return $Response
     }
