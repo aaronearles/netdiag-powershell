@@ -15,6 +15,33 @@ function Invoke-NetDiagRequest {
         [hashtable]$QueryParameters = @{}
     )
 
+    # Helper function to recursively convert hashtables to PSCustomObjects
+    function ConvertTo-PSCustomObjectRecursive {
+        param([object]$InputObject)
+
+        if ($null -eq $InputObject) {
+            return $null
+        }
+
+        if ($InputObject -is [System.Collections.IDictionary]) {
+            $output = [PSCustomObject]@{}
+            foreach ($key in $InputObject.Keys) {
+                $output | Add-Member -MemberType NoteProperty -Name $key -Value (ConvertTo-PSCustomObjectRecursive $InputObject[$key])
+            }
+            return $output
+        }
+        elseif ($InputObject -is [System.Collections.IEnumerable] -and $InputObject -isnot [string]) {
+            $output = @()
+            foreach ($item in $InputObject) {
+                $output += ConvertTo-PSCustomObjectRecursive $item
+            }
+            return $output
+        }
+        else {
+            return $InputObject
+        }
+    }
+
     try {
         $ServerUrl = Get-NetDiagServerUrl
         $FullUri = "$ServerUrl$Uri"
@@ -41,8 +68,8 @@ function Invoke-NetDiagRequest {
             $ResponseHash = $WebResponse | ConvertFrom-Json -AsHashtable
         }
 
-        # Convert hashtable to PSCustomObject for better property access
-        $Response = [PSCustomObject]$ResponseHash
+        # Recursively convert hashtable to PSCustomObject for better property access
+        $Response = ConvertTo-PSCustomObjectRecursive $ResponseHash
 
         return $Response
     }
