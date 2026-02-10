@@ -26,7 +26,8 @@ function Invoke-NetDiagRequest {
         if ($InputObject -is [System.Collections.IDictionary]) {
             $output = [PSCustomObject]@{}
             foreach ($key in $InputObject.Keys) {
-                $output | Add-Member -MemberType NoteProperty -Name $key -Value (ConvertTo-PSCustomObjectRecursive $InputObject[$key])
+                # Use -Force to handle case-sensitive duplicate keys (country vs Country)
+                $output | Add-Member -MemberType NoteProperty -Name $key -Value (ConvertTo-PSCustomObjectRecursive $InputObject[$key]) -Force
             }
             return $output
         }
