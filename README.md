@@ -19,35 +19,78 @@ PowerShell client for the NetDiag network diagnostic tools API. Provides a unifi
 
 ## Installation
 
-### Option 1: Install from Git Repository
+### For End Users (Recommended)
+
+Install the module to your PowerShell modules directory for easy access:
 
 ```powershell
+# Find your PowerShell modules directory
+$PSModulePath = ($env:PSModulePath -split ';')[0]
+Write-Host "Installing to: $PSModulePath"
+
 # Clone the repository
-git clone https://github.com/aaronearles/netdiag-powershell.git
-
-# Import the module
-Import-Module .\netdiag-powershell\NetDiag.psd1
-```
-
-### Option 2: Install to PowerShell Modules Directory
-
-```powershell
-# Clone to your PowerShell modules directory
-$ModulePath = "$env:USERPROFILE\Documents\PowerShell\Modules\NetDiag"
+$ModulePath = Join-Path $PSModulePath "NetDiag"
 git clone https://github.com/aaronearles/netdiag-powershell.git $ModulePath
 
-# Import the module (or restart PowerShell for auto-loading)
-Import-Module NetDiag
+# Verify installation
+Get-Module -ListAvailable NetDiag
 ```
 
-### Option 3: Manual Installation
+After installation, you can use the module in any PowerShell session:
 
-1. Download/clone the repository
-2. Copy the `netdiag-powershell` folder to one of your PowerShell module paths:
-   - User: `$env:USERPROFILE\Documents\PowerShell\Modules\`
-   - System: `C:\Program Files\PowerShell\Modules\`
-3. Rename folder to `NetDiag`
-4. Import: `Import-Module NetDiag`
+```powershell
+# Import once per session
+Import-Module NetDiag
+
+# Or add to your PowerShell profile for auto-loading
+Add-Content $PROFILE "`nImport-Module NetDiag"
+```
+
+### For Development
+
+If you're modifying the module, import directly from the source directory:
+
+```powershell
+# Remove old version if loaded
+Remove-Module NetDiag -ErrorAction SilentlyContinue
+
+# Import from source (use -Force to reload changes)
+Import-Module 'C:\path\to\netdiag-powershell\NetDiag.psd1' -Force
+```
+
+### Manual Installation (No Git)
+
+1. Download the repository as a ZIP file from GitHub
+2. Extract to your PowerShell modules directory:
+   - **PowerShell 7+**: `$env:USERPROFILE\Documents\PowerShell\Modules\NetDiag`
+   - **Windows PowerShell 5.1**: `$env:USERPROFILE\Documents\WindowsPowerShell\Modules\NetDiag`
+3. Unblock the files:
+   ```powershell
+   Get-ChildItem -Path "$env:USERPROFILE\Documents\PowerShell\Modules\NetDiag" -Recurse | Unblock-File
+   ```
+4. Import the module:
+   ```powershell
+   Import-Module NetDiag
+   ```
+
+## Quick Start
+
+After installation, configure the server URL and start using the tools:
+
+```powershell
+# 1. Import the module (if not auto-loaded)
+Import-Module NetDiag
+
+# 2. Configure your NetDiag server
+Set-NetDiagServer -Url "https://netdiag.internal.earles.io" -Persist
+
+# 3. Start using the tools
+netdiag whois -Target 8.8.8.8
+netdiag dns -Hostname google.com
+netdiag ping -PingTarget 1.1.1.1
+netdiag port -Host google.com -Port 443
+netdiag ssl -SSLHostname google.com
+```
 
 ## Configuration
 
@@ -373,6 +416,33 @@ Test-NetConnection dockerint01 -Port 3000
 
 # Set correct server URL
 Set-NetDiagServer -Url "http://dockerint01:3000"
+```
+
+### Module Changes Not Taking Effect (During Development)
+
+When modifying the module, you need to reload it to see changes:
+
+```powershell
+# Remove the loaded module
+Remove-Module NetDiag -ErrorAction SilentlyContinue
+
+# Re-import with -Force to reload
+Import-Module 'C:\path\to\netdiag-powershell\NetDiag.psd1' -Force
+```
+
+Alternatively, use `-Force` directly:
+
+```powershell
+Import-Module NetDiag -Force
+```
+
+### Files Downloaded from Internet are Blocked
+
+If you downloaded the module as a ZIP, Windows may block the files. Unblock them:
+
+```powershell
+# Unblock all files in the module directory
+Get-ChildItem -Path "$env:USERPROFILE\Documents\PowerShell\Modules\NetDiag" -Recurse | Unblock-File
 ```
 
 ### Enable Verbose Logging
