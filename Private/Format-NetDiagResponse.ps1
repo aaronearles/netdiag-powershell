@@ -100,26 +100,44 @@ function Format-NetDiagResponse {
         'ssl' {
             # Convert certificate object to proper PowerShell object
             $Cert = $Response.certificate
+
+            # Build Subject object with available properties
+            $SubjectProps = @{}
+            if ($Cert.subject.common_name) { $SubjectProps.CommonName = $Cert.subject.common_name }
+            if ($Cert.subject.organization) { $SubjectProps.Organization = $Cert.subject.organization }
+            if ($Cert.subject.country) { $SubjectProps.Country = $Cert.subject.country }
+
+            # Build Issuer object with available properties
+            $IssuerProps = @{}
+            if ($Cert.issuer.common_name) { $IssuerProps.CommonName = $Cert.issuer.common_name }
+            if ($Cert.issuer.organization) { $IssuerProps.Organization = $Cert.issuer.organization }
+            if ($Cert.issuer.country) { $IssuerProps.Country = $Cert.issuer.country }
+
+            # Build Key object
+            $KeyProps = @{}
+            if ($Cert.key.algorithm) { $KeyProps.Algorithm = $Cert.key.algorithm }
+            if ($Cert.key.size) { $KeyProps.Size = $Cert.key.size }
+
             [PSCustomObject]@{
                 PSTypeName  = 'NetDiag.SSL'
                 Hostname    = $Response.hostname
                 Port        = $Response.port
                 Certificate = [PSCustomObject]@{
-                    Subject = [PSCustomObject]$Cert.subject
-                    Issuer  = [PSCustomObject]$Cert.issuer
+                    Subject = [PSCustomObject]$SubjectProps
+                    Issuer  = [PSCustomObject]$IssuerProps
                     Validity = [PSCustomObject]@{
-                        NotBefore     = [DateTime]$Cert.validity.not_before
-                        NotAfter      = [DateTime]$Cert.validity.not_after
+                        NotBefore     = if ($Cert.validity.not_before) { [DateTime]$Cert.validity.not_before } else { $null }
+                        NotAfter      = if ($Cert.validity.not_after) { [DateTime]$Cert.validity.not_after } else { $null }
                         DaysRemaining = $Cert.validity.days_remaining
                         Expired       = $Cert.validity.expired
                         Valid         = $Cert.validity.valid
                     }
-                    SubjectAltNames     = $Cert.subject_alt_names
-                    Key                 = [PSCustomObject]$Cert.key
-                    SignatureAlgorithm  = $Cert.signature_algorithm
-                    SerialNumber        = $Cert.serial_number
-                    Version             = $Cert.version
-                    SelfSigned          = $Cert.self_signed
+                    SubjectAltNames    = $Cert.subject_alt_names
+                    Key                = [PSCustomObject]$KeyProps
+                    SignatureAlgorithm = $Cert.signature_algorithm
+                    SerialNumber       = $Cert.serial_number
+                    Version            = $Cert.version
+                    SelfSigned         = $Cert.self_signed
                 }
                 Warnings    = $Response.warnings
                 ChainValid  = $Response.chain_valid
