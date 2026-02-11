@@ -11,41 +11,86 @@ PowerShell client for the NetDiag network diagnostic tools API. Provides a unifi
   - Ping tests (ICMP with RTT statistics)
   - Port connectivity checks (TCP)
   - SSL certificate inspection
+- **Normalized Whois Fields**: Consistent field names across all Regional Internet Registries (ARIN, APNIC, RIPE, etc.)
+- **Smart Output Formatting**: Filtered queries return flat structure with direct property access
 - **PowerShell Native**: Returns proper PowerShell objects for pipeline operations
 - **Flexible Configuration**: Multiple ways to configure server URL
 - **PowerShell 5.1+ Compatible**: Works on Windows PowerShell and PowerShell Core
 
 ## Installation
 
-### Option 1: Install from Git Repository
+### For End Users (Recommended)
+
+Install the module to your PowerShell modules directory for easy access:
 
 ```powershell
+# Find your PowerShell modules directory
+$PSModulePath = ($env:PSModulePath -split ';')[0]
+Write-Host "Installing to: $PSModulePath"
+
 # Clone the repository
-git clone https://github.com/aaronearles/netdiag-powershell.git
-
-# Import the module
-Import-Module .\netdiag-powershell\NetDiag.psd1
-```
-
-### Option 2: Install to PowerShell Modules Directory
-
-```powershell
-# Clone to your PowerShell modules directory
-$ModulePath = "$env:USERPROFILE\Documents\PowerShell\Modules\NetDiag"
+$ModulePath = Join-Path $PSModulePath "NetDiag"
 git clone https://github.com/aaronearles/netdiag-powershell.git $ModulePath
 
-# Import the module (or restart PowerShell for auto-loading)
-Import-Module NetDiag
+# Verify installation
+Get-Module -ListAvailable NetDiag
 ```
 
-### Option 3: Manual Installation
+After installation, you can use the module in any PowerShell session:
 
-1. Download/clone the repository
-2. Copy the `netdiag-powershell` folder to one of your PowerShell module paths:
-   - User: `$env:USERPROFILE\Documents\PowerShell\Modules\`
-   - System: `C:\Program Files\PowerShell\Modules\`
-3. Rename folder to `NetDiag`
-4. Import: `Import-Module NetDiag`
+```powershell
+# Import once per session
+Import-Module NetDiag
+
+# Or add to your PowerShell profile for auto-loading
+Add-Content $PROFILE "`nImport-Module NetDiag"
+```
+
+### For Development
+
+If you're modifying the module, import directly from the source directory:
+
+```powershell
+# Remove old version if loaded
+Remove-Module NetDiag -ErrorAction SilentlyContinue
+
+# Import from source (use -Force to reload changes)
+Import-Module 'C:\path\to\netdiag-powershell\NetDiag.psd1' -Force
+```
+
+### Manual Installation (No Git)
+
+1. Download the repository as a ZIP file from GitHub
+2. Extract to your PowerShell modules directory:
+   - **PowerShell 7+**: `$env:USERPROFILE\Documents\PowerShell\Modules\NetDiag`
+   - **Windows PowerShell 5.1**: `$env:USERPROFILE\Documents\WindowsPowerShell\Modules\NetDiag`
+3. Unblock the files:
+   ```powershell
+   Get-ChildItem -Path "$env:USERPROFILE\Documents\PowerShell\Modules\NetDiag" -Recurse | Unblock-File
+   ```
+4. Import the module:
+   ```powershell
+   Import-Module NetDiag
+   ```
+
+## Quick Start
+
+After installation, configure the server URL and start using the tools:
+
+```powershell
+# 1. Import the module (if not auto-loaded)
+Import-Module NetDiag
+
+# 2. Configure your NetDiag server
+Set-NetDiagServer -Url "https://netdiag.internal.earles.io" -Persist
+
+# 3. Start using the tools
+netdiag whois -Target 8.8.8.8
+netdiag dns -Hostname google.com
+netdiag ping -PingTarget 1.1.1.1
+netdiag port -Host google.com -Port 443
+netdiag ssl -SSLHostname google.com
+```
 
 ## Configuration
 
@@ -102,18 +147,32 @@ netdiag whois -Target google.com
 # ASN lookup
 netdiag whois -Target AS15169
 
-# Filter specific fields
-netdiag whois -Target 8.8.8.8 -Fields NetRange,Organization,Country
+# Filter specific fields (uses standardized field names)
+netdiag whois -Target 8.8.8.8 -Fields Organization,CIDR,Country
 ```
 
-**Output:**
+**Full Output:**
 ```
 Target    : 8.8.8.8
-Parsed    : @{NetRange=8.8.8.0 - 8.8.8.255; CIDR=8.8.8.0/24; Organization=Google LLC}
+Parsed    : @{NetRange=8.8.8.0 - 8.8.8.255; IPRange=8.8.8.0 - 8.8.8.255; CIDR=8.8.8.0/24;
+            NetName=LVLT-GOGL-8-8-8; NetworkName=LVLT-GOGL-8-8-8; Organization=Google LLC;
+            Country=US; ...}
 Raw       : # ARIN WHOIS data...
 Cached    : False
 Timestamp : 2/10/2026 10:00:00 AM
 ```
+
+**Filtered Output (with -Fields parameter):**
+```
+Target       : 8.8.8.8
+Organization : Google LLC
+CIDR         : 8.8.8.0/24
+Country      : US
+Cached       : False
+Timestamp    : 2/10/2026 10:00:00 AM
+```
+
+Note: The API normalizes whois fields across different Regional Internet Registries (RIRs). You can use standardized field names like `Organization`, `IPRange`, `CIDR`, `Country` that work consistently regardless of whether the data comes from ARIN, APNIC, RIPE, etc. Both original and normalized field names are available in full responses.
 
 ### DNS Lookup
 
@@ -168,8 +227,8 @@ Target            : 8.8.8.8
 PacketsSent       : 4
 PacketsReceived   : 4
 PacketLossPercent : 0
-DurationMs        : 3042
-RTT               : @{MinMs=14.2; AvgMs=15.1; MaxMs=16.8; StdDevMs=1.2}
+TimeMs            : 3042
+RTT               : @{Min=14.2; Avg=15.1; Max=16.8; StdDev=1.2}
 Cached            : False
 Timestamp         : 2/10/2026 10:00:00 AM
 ```
@@ -243,13 +302,20 @@ Leverage PowerShell's pipeline capabilities:
 $Cert = netdiag ssl -SSLHostname google.com
 $Cert.Certificate.Validity | Export-Csv -Path certs.csv -NoTypeInformation
 
-# Filter and format
-netdiag whois -Target 8.8.8.8 | Select-Object Target, @{N='Org';E={$_.Parsed.Organization}}
+# Filter and format whois results
+$result = netdiag whois -Target 8.8.8.8
+$result.Parsed.Organization
+$result.Parsed.CIDR
+
+# Filter whois with specific fields (returns flat structure)
+$result = netdiag whois -Target 8.8.8.8 -Fields Organization,CIDR,Country
+$result.Organization
+$result.CIDR
 
 # Check multiple IPs and filter reachable ones
 @('8.8.8.8', '1.1.1.1', '208.67.222.222') | ForEach-Object {
     netdiag ping -PingTarget $_ -Count 4
-} | Where-Object { $_.PacketLossPercent -eq 0 }
+} | Where-Object { $_.PacketLossPercent -eq 0 } | Select-Object Target, @{N='AvgRTT';E={$_.RTT.Avg}}
 ```
 
 ## Advanced Usage
@@ -352,6 +418,33 @@ Test-NetConnection dockerint01 -Port 3000
 Set-NetDiagServer -Url "http://dockerint01:3000"
 ```
 
+### Module Changes Not Taking Effect (During Development)
+
+When modifying the module, you need to reload it to see changes:
+
+```powershell
+# Remove the loaded module
+Remove-Module NetDiag -ErrorAction SilentlyContinue
+
+# Re-import with -Force to reload
+Import-Module 'C:\path\to\netdiag-powershell\NetDiag.psd1' -Force
+```
+
+Alternatively, use `-Force` directly:
+
+```powershell
+Import-Module NetDiag -Force
+```
+
+### Files Downloaded from Internet are Blocked
+
+If you downloaded the module as a ZIP, Windows may block the files. Unblock them:
+
+```powershell
+# Unblock all files in the module directory
+Get-ChildItem -Path "$env:USERPROFILE\Documents\PowerShell\Modules\NetDiag" -Recurse | Unblock-File
+```
+
 ### Enable Verbose Logging
 
 ```powershell
@@ -384,7 +477,7 @@ netdiag-powershell/
 
 ## Related Projects
 
-- [netdiag-server](https://github.com/aaronearles/netdiag) - HTTP API server
+- [netdiag-server](https://github.com/aaronearles/netdiag-server) - HTTP API server
 - [netdiag-python](https://github.com/aaronearles/netdiag-python) - Python client (coming soon)
 
 ## License

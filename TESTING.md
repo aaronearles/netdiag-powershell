@@ -70,8 +70,8 @@ netdiag whois -Target 8.8.8.8
 # Test domain lookup
 netdiag whois -Target google.com
 
-# Test with field filtering
-netdiag whois -Target 8.8.8.8 -Fields NetRange,Organization,Country
+# Test with field filtering (using standardized field names)
+netdiag whois -Target 8.8.8.8 -Fields Organization,CIDR,Country
 
 # Test IPv6
 netdiag whois -Target 2001:4860:4860::8888
@@ -113,7 +113,10 @@ netdiag ping -PingTarget google.com -Count 5
 
 # Check RTT stats
 $Result = netdiag ping -PingTarget 8.8.8.8
-$Result.RTT
+$Result.RTT.Min
+$Result.RTT.Avg
+$Result.RTT.Max
+$Result.RTT.StdDev
 ```
 
 #### Port Tests
@@ -173,7 +176,7 @@ $Ping1 = netdiag ping -PingTarget 8.8.8.8 -Count 4
 $Ping2 = netdiag ping -PingTarget 1.1.1.1 -Count 4
 
 @($Ping1, $Ping2) | Where-Object { $_.PacketLossPercent -eq 0 } |
-    Select-Object Target, PacketsReceived, @{N='AvgRTT';E={$_.RTT.AvgMs}}
+    Select-Object Target, PacketsReceived, @{N='AvgRTT';E={$_.RTT.Avg}}
 ```
 
 ### 5. Test Error Handling
