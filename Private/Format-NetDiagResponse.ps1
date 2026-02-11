@@ -101,30 +101,21 @@ function Format-NetDiagResponse {
             # Convert certificate object to proper PowerShell object
             $Cert = $Response.certificate
 
-            # Build Subject object with available properties
-            $SubjectProps = @{}
-            if ($Cert.subject.common_name) { $SubjectProps.CommonName = $Cert.subject.common_name }
-            if ($Cert.subject.organization) { $SubjectProps.Organization = $Cert.subject.organization }
-            if ($Cert.subject.country) { $SubjectProps.Country = $Cert.subject.country }
-
-            # Build Issuer object with available properties
-            $IssuerProps = @{}
-            if ($Cert.issuer.common_name) { $IssuerProps.CommonName = $Cert.issuer.common_name }
-            if ($Cert.issuer.organization) { $IssuerProps.Organization = $Cert.issuer.organization }
-            if ($Cert.issuer.country) { $IssuerProps.Country = $Cert.issuer.country }
-
-            # Build Key object
-            $KeyProps = @{}
-            if ($Cert.key.algorithm) { $KeyProps.Algorithm = $Cert.key.algorithm }
-            if ($Cert.key.size) { $KeyProps.Size = $Cert.key.size }
-
             [PSCustomObject]@{
                 PSTypeName  = 'NetDiag.SSL'
                 Hostname    = $Response.hostname
                 Port        = $Response.port
                 Certificate = [PSCustomObject]@{
-                    Subject = [PSCustomObject]$SubjectProps
-                    Issuer  = [PSCustomObject]$IssuerProps
+                    Subject = [PSCustomObject]@{
+                        CommonName   = $Cert.subject.common_name
+                        Organization = $Cert.subject.organization
+                        Country      = $Cert.subject.country
+                    }
+                    Issuer = [PSCustomObject]@{
+                        CommonName   = $Cert.issuer.common_name
+                        Organization = $Cert.issuer.organization
+                        Country      = $Cert.issuer.country
+                    }
                     Validity = [PSCustomObject]@{
                         NotBefore     = if ($Cert.validity.not_before) { [DateTime]$Cert.validity.not_before } else { $null }
                         NotAfter      = if ($Cert.validity.not_after) { [DateTime]$Cert.validity.not_after } else { $null }
@@ -133,7 +124,10 @@ function Format-NetDiagResponse {
                         Valid         = $Cert.validity.valid
                     }
                     SubjectAltNames    = $Cert.subject_alt_names
-                    Key                = [PSCustomObject]$KeyProps
+                    Key = [PSCustomObject]@{
+                        Algorithm = $Cert.key.algorithm
+                        Size      = $Cert.key.size
+                    }
                     SignatureAlgorithm = $Cert.signature_algorithm
                     SerialNumber       = $Cert.serial_number
                     Version            = $Cert.version
