@@ -51,12 +51,18 @@ function Invoke-NetDiag {
 
     .EXAMPLE
     netdiag ssl -Hostname google.com
+
+    .EXAMPLE
+    netdiag subdomains -Domain example.com
+
+    .PARAMETER Domain
+    Domain name for subdomain discovery
     #>
     [CmdletBinding(DefaultParameterSetName = 'Whois')]
     [Alias('netdiag')]
     param(
         [Parameter(Mandatory, Position = 0)]
-        [ValidateSet('whois', 'dns', 'ping', 'port', 'ssl')]
+        [ValidateSet('whois', 'dns', 'ping', 'port', 'ssl', 'subdomains')]
         [string]$Tool,
 
         # Whois parameters
@@ -98,6 +104,10 @@ function Invoke-NetDiag {
         [ValidateRange(1, 65535)]
         [int]$SSLPort = 443,
 
+        # Subdomains parameters
+        [Parameter(Mandatory, ParameterSetName = 'Subdomains')]
+        [string]$Domain,
+
         # Common parameters
         [Parameter()]
         [switch]$AsJson
@@ -130,6 +140,10 @@ function Invoke-NetDiag {
             if ($SSLPort -ne 443) {
                 $Query['port'] = $SSLPort
             }
+        }
+        'subdomains' {
+            $Uri = "/api/subdomains/$Domain"
+            $Query = @{}
         }
     }
 

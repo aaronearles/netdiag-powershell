@@ -139,5 +139,16 @@ function Format-NetDiagResponse {
                 Timestamp   = [DateTime]$Response.timestamp
             }
         }
+        'subdomains' {
+            [PSCustomObject]@{
+                PSTypeName  = 'NetDiag.Subdomains'
+                Domain      = $Response.domain
+                Subdomains  = $Response.subdomains
+                Count       = $Response.count
+                QueryTimeMs = $Response.query_time_ms
+                Cached      = $Response.cached
+                Timestamp   = [DateTime]$Response.timestamp
+            }
+        }
     }
 }
